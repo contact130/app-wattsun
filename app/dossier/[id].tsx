@@ -748,42 +748,44 @@ export default function DossierScreen() {
             </TouchableOpacity>
           </View>
           {/* Carousel horizontal */}
-          <FlatList
-            data={allPhotos}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            initialScrollIndex={fullscreenIndex || 0}
-            getItemLayout={(_, index) => ({
-              length: Dimensions.get('window').width,
-              offset: Dimensions.get('window').width * index,
-              index,
-            })}
-            onMomentumScrollEnd={(e) => {
-              const newIndex = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
-              setFullscreenIndex(newIndex);
-            }}
-            keyExtractor={(item) => item.id.toString()}
-            style={{ flex: 1 }}
-            contentContainerStyle={{ alignItems: 'center' }}
-            renderItem={({ item }) => (
-              <View style={{
-                width: Dimensions.get('window').width,
-                height: Dimensions.get('window').height,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-                <Image
-                  source={{ uri: item.url }}
-                  style={{
-                    width: Dimensions.get('window').width,
-                    height: Dimensions.get('window').height * 0.75,
-                  }}
-                  resizeMode="contain"
-                />
-              </View>
-            )}
-          />
+          {fullscreenIndex !== null && (
+            <FlatList
+              key={`gallery-${fullscreenIndex}`}
+              data={allPhotos}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              initialScrollIndex={fullscreenIndex}
+              getItemLayout={(_, index) => ({
+                length: Dimensions.get('window').width,
+                offset: Dimensions.get('window').width * index,
+                index,
+              })}
+              onMomentumScrollEnd={(e) => {
+                const newIndex = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                setFullscreenIndex(newIndex);
+              }}
+              keyExtractor={(item) => item.id.toString()}
+              style={{ flex: 1 }}
+              renderItem={({ item }) => (
+                <View style={{
+                  width: Dimensions.get('window').width,
+                  height: Dimensions.get('window').height,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <Image
+                    source={{ uri: item.url }}
+                    style={{
+                      width: Dimensions.get('window').width,
+                      height: Dimensions.get('window').height * 0.75,
+                    }}
+                    resizeMode="contain"
+                  />
+                </View>
+              )}
+            />
+          )}
         </View>
       </Modal>
     </View>
