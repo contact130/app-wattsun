@@ -90,7 +90,7 @@ export default function DossierScreen() {
   const [tab, setTab] = useState<Tab>('discussion');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
   const { code, partenaire } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -233,10 +233,16 @@ export default function DossierScreen() {
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
 
-  // Extraire les photos des commentaires (pièces jointes de type image)
-  const photos = commentaires
+  // Extraire toutes les photos des commentaires (pièces jointes de type image)
+  const allPhotos = commentaires
     .filter(c => c.pieceJointeUrl && c.pieceJointeType === 'image')
     .map(c => ({ id: c.id, url: c.pieceJointeUrl!, createdAt: c.createdAt }));
+
+  // Ouvrir la galerie plein écran à l'index de la photo tapée
+  function openFullscreen(url: string) {
+    const idx = allPhotos.findIndex(p => p.url === url);
+    setFullscreenIndex(idx >= 0 ? idx : 0);
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F8FAFB', paddingTop: insets.top }}>
@@ -368,7 +374,7 @@ export default function DossierScreen() {
                       {/* Afficher la pièce jointe image (cliquable pour plein écran) */}
                       {item.pieceJointeUrl && item.pieceJointeType === 'image' && (
                         <TouchableOpacity
-                          onPress={() => setFullscreenImage(item.pieceJointeUrl)}
+                          onPress={() => openFullscreen(item.pieceJointeUrl!)}
                           activeOpacity={0.8}
                         >
                           <Image
@@ -604,7 +610,7 @@ export default function DossierScreen() {
           )}
 
           {/* Photos (extraites des commentaires) */}
-          {photos.length > 0 && (
+          {allPhotos.length > 0 && (
             <View style={{
               backgroundColor: '#fff',
               borderRadius: 12,
@@ -617,13 +623,13 @@ export default function DossierScreen() {
               elevation: 1,
             }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#11181C', marginBottom: 12 }}>
-                Photos ({photos.length})
+                Photos ({allPhotos.length})
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {photos.map((photo) => (
+                {allPhotos.map((photo) => (
                   <TouchableOpacity
                     key={photo.id}
-                    onPress={() => setFullscreenImage(photo.url)}
+                    onPress={() => openFullscreen(photo.url)}
                     activeOpacity={0.8}
                   >
                     <Image
@@ -697,44 +703,81 @@ export default function DossierScreen() {
         </ScrollView>
       )}
 
-      {/* Modal plein écran pour les photos */}
+      {/* Modal plein écran avec swipe gauche/droite */}
       <Modal
-        visible={!!fullscreenImage}
+        visible={fullscreenIndex !== null}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setFullscreenImage(null)}
+        onRequestClose={() => setFullscreenIndex(null)}
       >
         <View style={{
           flex: 1,
           backgroundColor: 'rgba(0,0,0,0.95)',
-          justifyContent: 'center',
-          alignItems: 'center',
         }}>
           <StatusBar barStyle="light-content" />
-          <TouchableOpacity
-            onPress={() => setFullscreenImage(null)}
-            style={{
-              position: 'absolute',
-              top: insets.top + 10,
-              right: 16,
-              zIndex: 10,
-              padding: 8,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              borderRadius: 20,
-            }}
-          >
-            <Ionicons name="close" size={28} color="#fff" />
-          </TouchableOpacity>
-          {fullscreenImage && (
-            <Image
-              source={{ uri: fullscreenImage }}
+          {/* Header: bouton fermer + compteur */}
+          <View style={{
+            position: 'absolute',
+            top: insets.top + 10,
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+          }}>
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
+              {fullscreenIndex !== null ? `${fullscreenIndex + 1} / ${allPhotos.length}` : ''}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setFullscreenIndex(null)}
               style={{
-                width: Dimensions.get('window').width,
-                height: Dimensions.get('window').height * 0.8,
+                padding: 8,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                borderRadius: 20,
               }}
-              resizeMode="contain"
-            />
-          )}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          {/* Carousel horizontal */}
+          <FlatList
+            data={allPhotos}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={fullscreenIndex || 0}
+            getItemLayout={(_, index) => ({
+              length: Dimensions.get('window').width,
+              offset: Dimensions.get('window').width * index,
+              index,
+            })}
+            onMomentumScrollEnd={(e) => {
+              const newIndex = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+              setFullscreenIndex(newIndex);
+            }}
+            keyExtractor={(item) => item.id.toString()}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ alignItems: 'center' }}
+            renderItem={({ item }) => (
+              <View style={{
+                width: Dimensions.get('window').width,
+                height: Dimensions.get('window').height,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <Image
+                  source={{ uri: item.url }}
+                  style={{
+                    width: Dimensions.get('window').width,
+                    height: Dimensions.get('window').height * 0.75,
+                  }}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+          />
         </View>
       </Modal>
     </View>
