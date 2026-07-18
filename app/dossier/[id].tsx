@@ -12,6 +12,9 @@ import {
   Image,
   ScrollView,
   Linking,
+  Modal,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,6 +66,7 @@ export default function DossierScreen() {
   const [tab, setTab] = useState<Tab>('discussion');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const { code, partenaire } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -146,7 +150,7 @@ export default function DossierScreen() {
       await addCommentaire({
         code,
         dossierId: parseInt(id),
-        contenu: '📷 Photo envoyée',
+        contenu: ' ',
         pieceJointeBase64: base64 || '',
         pieceJointeNom: fileName,
         pieceJointeMime: mime,
@@ -337,18 +341,23 @@ export default function DossierScreen() {
                       shadowRadius: 2,
                       elevation: 1,
                     }}>
-                      {/* Afficher la pièce jointe image */}
+                      {/* Afficher la pièce jointe image (cliquable pour plein écran) */}
                       {item.pieceJointeUrl && item.pieceJointeType === 'image' && (
-                        <Image
-                          source={{ uri: item.pieceJointeUrl }}
-                          style={{
-                            width: 200,
-                            height: 150,
-                            borderRadius: 8,
-                            marginBottom: 6,
-                          }}
-                          resizeMode="cover"
-                        />
+                        <TouchableOpacity
+                          onPress={() => setFullscreenImage(item.pieceJointeUrl)}
+                          activeOpacity={0.8}
+                        >
+                          <Image
+                            source={{ uri: item.pieceJointeUrl }}
+                            style={{
+                              width: 220,
+                              height: 165,
+                              borderRadius: 8,
+                              marginBottom: item.contenu.trim() ? 6 : 0,
+                            }}
+                            resizeMode="cover"
+                          />
+                        </TouchableOpacity>
                       )}
                       {/* Afficher la pièce jointe PDF */}
                       {item.pieceJointeUrl && item.pieceJointeType === 'pdf' && (
@@ -362,9 +371,12 @@ export default function DossierScreen() {
                           </Text>
                         </TouchableOpacity>
                       )}
-                      <Text style={{ fontSize: 15, color: isMe ? '#fff' : '#11181C', lineHeight: 20 }}>
-                        {item.contenu}
-                      </Text>
+                      {/* N'afficher le texte que s'il y a un vrai contenu (pas juste un espace pour les photos) */}
+                      {item.contenu.trim() ? (
+                        <Text style={{ fontSize: 15, color: isMe ? '#fff' : '#11181C', lineHeight: 20 }}>
+                          {item.contenu}
+                        </Text>
+                      ) : null}
                       <Text style={{
                         fontSize: 10,
                         color: isMe ? 'rgba(255,255,255,0.7)' : '#9BA1A6',
@@ -567,12 +579,17 @@ export default function DossierScreen() {
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {photos.map((photo) => (
-                  <Image
+                  <TouchableOpacity
                     key={photo.id}
-                    source={{ uri: photo.url }}
-                    style={{ width: 100, height: 100, borderRadius: 8 }}
-                    resizeMode="cover"
-                  />
+                    onPress={() => setFullscreenImage(photo.url)}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={{ uri: photo.url }}
+                      style={{ width: 100, height: 100, borderRadius: 8 }}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
@@ -637,6 +654,47 @@ export default function DossierScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
+
+      {/* Modal plein écran pour les photos */}
+      <Modal
+        visible={!!fullscreenImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setFullscreenImage(null)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.95)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <StatusBar barStyle="light-content" />
+          <TouchableOpacity
+            onPress={() => setFullscreenImage(null)}
+            style={{
+              position: 'absolute',
+              top: insets.top + 10,
+              right: 16,
+              zIndex: 10,
+              padding: 8,
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              borderRadius: 20,
+            }}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          {fullscreenImage && (
+            <Image
+              source={{ uri: fullscreenImage }}
+              style={{
+                width: Dimensions.get('window').width,
+                height: Dimensions.get('window').height * 0.8,
+              }}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
