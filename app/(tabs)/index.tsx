@@ -47,6 +47,40 @@ function formatDate(timestamp: number | string | null): string {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
 }
 
+function capitalizeFirst(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function formatTypesTravaux(raw: string | null): string {
+  if (!raw) return 'Chantier';
+  try {
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) {
+      return arr.map((t: string) => capitalizeFirst(t.trim())).join(', ');
+    }
+    return capitalizeFirst(raw);
+  } catch {
+    return capitalizeFirst(raw);
+  }
+}
+
+function formatStatutLabel(raw: string | null): string {
+  if (!raw) return '';
+  const formatted = raw.replace(/_/g, ' ');
+  return capitalizeFirst(formatted);
+}
+
+function getStatutBadgeColor(statut: string | null): { bg: string; text: string } {
+  if (!statut) return { bg: '#F3F4F6', text: '#6B7280' };
+  const s = statut.toLowerCase();
+  if (s.includes('en_cours') || s.includes('en cours')) return { bg: '#DCFCE7', text: '#166534' };
+  if (s.includes('livre') || s.includes('livré')) return { bg: '#DBEAFE', text: '#1E40AF' };
+  if (s.includes('termin') || s.includes('clotur')) return { bg: '#E0E7FF', text: '#3730A3' };
+  if (s.includes('annul')) return { bg: '#FEE2E2', text: '#991B1B' };
+  if (s.includes('attente') || s.includes('pause')) return { bg: '#FEF3C7', text: '#92400E' };
+  return { bg: '#F3F4F6', text: '#374151' };
+}
+
 export default function ChantiersList() {
   const [dossiers, setDossiers] = useState<Dossier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +163,7 @@ export default function ChantiersList() {
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
             <Text style={{ fontSize: 13, color: '#687076', flex: 1 }} numberOfLines={1}>
-              {item.typesTravaux || 'Chantier'} — {item.ville || 'Ville non renseignée'}
+              {formatTypesTravaux(item.typesTravaux)} — {item.ville || 'Ville non renseignée'}
             </Text>
           </View>
           {item.statut && (
@@ -138,14 +172,14 @@ export default function ChantiersList() {
                 paddingHorizontal: 8,
                 paddingVertical: 2,
                 borderRadius: 10,
-                backgroundColor: item.statut === 'En cours' ? '#DCFCE7' : '#F3F4F6',
+                backgroundColor: getStatutBadgeColor(item.statut).bg,
               }}>
                 <Text style={{
                   fontSize: 11,
                   fontWeight: '500',
-                  color: item.statut === 'En cours' ? '#166534' : '#6B7280',
+                  color: getStatutBadgeColor(item.statut).text,
                 }}>
-                  {item.statut}
+                  {formatStatutLabel(item.statut)}
                 </Text>
               </View>
             </View>

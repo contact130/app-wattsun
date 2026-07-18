@@ -114,12 +114,17 @@ export async function addCommentaire(data: {
 }
 
 // Toggle checklist
+// Le backend attend { code, id, fait } (pas "checklistId")
 export async function toggleChecklist(data: {
   code: string;
   checklistId: number;
   fait: boolean;
 }): Promise<{ success: boolean }> {
-  return await trpcMutation('portail.toggleChecklist', data);
+  return await trpcMutation('portail.toggleChecklist', {
+    code: data.code,
+    id: data.checklistId,
+    fait: data.fait,
+  });
 }
 
 // Récupérer les notifications
