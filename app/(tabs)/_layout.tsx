@@ -1,11 +1,19 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { usePushNotifications } from '../../src/hooks/usePushNotifications';
+import { useEffect } from 'react';
 
 export default function TabsLayout() {
-  const { partenaire } = useAuth();
+  const { partenaire, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
   usePushNotifications(partenaire?.id || null);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated, isLoading]);
 
   return (
     <Tabs
