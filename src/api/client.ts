@@ -12,15 +12,20 @@ const api = axios.create({
 });
 
 // Helper pour appeler les procédures tRPC via HTTP
+// tRPC 11 avec superjson nécessite le wrapper {json: ...}
 export async function trpcQuery(path: string, input?: any) {
-  const params = input ? { input: JSON.stringify(input) } : {};
+  const params = input ? { input: JSON.stringify({ json: input }) } : {};
   const response = await api.get(`/api/trpc/${path}`, { params });
-  return response.data.result.data;
+  // superjson renvoie {result: {data: {json: ...}}}
+  const data = response.data?.result?.data;
+  return data?.json !== undefined ? data.json : data;
 }
 
 export async function trpcMutation(path: string, input?: any) {
-  const response = await api.post(`/api/trpc/${path}`, input);
-  return response.data.result.data;
+  const body = input ? { json: input } : undefined;
+  const response = await api.post(`/api/trpc/${path}`, body);
+  const data = response.data?.result?.data;
+  return data?.json !== undefined ? data.json : data;
 }
 
 // Auth helpers
