@@ -18,8 +18,8 @@ Notifications.setNotificationHandler({
 export function usePushNotifications(partenaireId: number | null) {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
+  const notificationListener = useRef<any>(null);
+  const responseListener = useRef<any>(null);
 
   useEffect(() => {
     if (!partenaireId) return;
@@ -27,31 +27,29 @@ export function usePushNotifications(partenaireId: number | null) {
     registerForPushNotifications().then(token => {
       if (token) {
         setExpoPushToken(token);
-        // Enregistrer le token sur le backend
         registerTokenOnBackend(token, partenaireId);
       }
     });
 
     // Listener pour les notifications reçues en foreground
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      setNotification(notification);
+    notificationListener.current = Notifications.addNotificationReceivedListener(n => {
+      setNotification(n);
     });
 
     // Listener pour les interactions avec les notifications
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
-      // Navigation vers le dossier si un lien est fourni
       if (data?.dossierId) {
-        // La navigation sera gérée par le composant parent
+        // Navigation gérée par le composant parent
       }
     });
 
     return () => {
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        notificationListener.current.remove();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        responseListener.current.remove();
       }
     };
   }, [partenaireId]);
@@ -62,7 +60,6 @@ export function usePushNotifications(partenaireId: number | null) {
 async function registerForPushNotifications(): Promise<string | null> {
   let token: string | null = null;
 
-  // Vérifier les permissions
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
@@ -76,18 +73,16 @@ async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
-  // Obtenir le token Expo Push
   try {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: projectId || undefined,
-    });
+    const tokenData = await Notifications.getExpoPushTokenAsync(
+      projectId ? { projectId } : undefined as any
+    );
     token = tokenData.data;
   } catch (e) {
     console.log('Erreur obtention token push:', e);
   }
 
-  // Configuration Android
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Messages',
