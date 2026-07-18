@@ -20,43 +20,60 @@ export interface Dossier {
   statut: string | null;
   typesTravaux: string | null;
   societe: string | null;
-  soustraitance: string | null;
+  soustraitance: boolean | null;
   donneurOrdre: string | null;
   notes: string | null;
-  createdAt: number | null;
-  updatedAt: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
-export interface DossierDetail extends Dossier {
-  commentaires: Commentaire[];
-  checklist: ChecklistItem[];
-  photos: Photo[];
-}
-
+// Correspond exactement aux colonnes de pipeline_commentaires
 export interface Commentaire {
   id: number;
-  auteur: string;
+  dossierId: number;
   contenu: string;
-  createdAt: number;
-  pieceJointe: string | null;
+  auteurNom: string;          // backend: auteurNom (pas "auteur")
+  auteurUserId: number | null;
+  pieceJointeUrl: string | null;  // backend: pieceJointeUrl (pas "pieceJointe")
   pieceJointeNom: string | null;
-  pieceJointeMime: string | null;
+  pieceJointeType: string | null; // 'image' | 'pdf' (pas "pieceJointeMime")
+  createdAt: string;              // Date ISO string via superjson
 }
 
+// Correspond exactement aux colonnes de pipeline_checklist_items
 export interface ChecklistItem {
   id: number;
-  label: string;
+  dossierId: number;
+  pole: string;
+  typeTravaux: string | null;
+  titre: string;              // backend: titre (pas "label")
   fait: boolean;
-  dateFait: number | null;
   faitPar: string | null;
+  dateFait: number | null;
+  ordre: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface Photo {
+export interface TacheLiee {
   id: number;
-  url: string;
-  legende: string | null;
-  categorie: string | null;
-  createdAt: number | null;
+  titre: string;
+  description: string | null;
+  assigneNom: string | null;
+  statut: string;
+  priorite: string;
+  metier: string | null;
+  dateLimite: number | null;
+  dateTerminee: number | null;
+  createdAt: string;
+}
+
+// Structure retournée par portail.techDossierDetail
+export interface DossierDetailResponse {
+  dossier: Dossier;
+  checklists: ChecklistItem[];
+  commentaires: Commentaire[];
+  tachesLiees: TacheLiee[];
 }
 
 export interface Notification {
@@ -79,16 +96,17 @@ export async function getTechDossiers(code: string): Promise<Dossier[]> {
 }
 
 // Récupérer le détail d'un dossier
-export async function getTechDossierDetail(code: string, dossierId: number): Promise<DossierDetail> {
+export async function getTechDossierDetail(code: string, dossierId: number): Promise<DossierDetailResponse> {
   return await trpcQuery('portail.techDossierDetail', { code, dossierId });
 }
 
 // Ajouter un commentaire
+// Backend attend: pieceJointeBase64 (pas "pieceJointe")
 export async function addCommentaire(data: {
   code: string;
   dossierId: number;
   contenu: string;
-  pieceJointe?: string;
+  pieceJointeBase64?: string;
   pieceJointeNom?: string;
   pieceJointeMime?: string;
 }): Promise<{ id: number }> {

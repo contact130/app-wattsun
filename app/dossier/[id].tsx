@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,20 +22,19 @@ import {
   getTechDossierDetail,
   addCommentaire,
   toggleChecklist,
-  DossierDetail,
+  DossierDetailResponse,
   Commentaire,
   ChecklistItem,
 } from '../../src/api/portail';
-import { trpcMutation } from '../../src/api/client';
 
 type Tab = 'discussion' | 'infos';
 
-function formatMessageTime(timestamp: number): string {
+function formatMessageTime(timestamp: string | number): string {
   const d = new Date(timestamp);
   return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatMessageDate(timestamp: number): string {
+function formatMessageDate(timestamp: string | number): string {
   const d = new Date(timestamp);
   const now = new Date();
   const diff = now.getTime() - d.getTime();
@@ -46,9 +45,20 @@ function formatMessageDate(timestamp: number): string {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
+function parseTypesTravaux(raw: string | null): string {
+  if (!raw) return '—';
+  try {
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return arr.join(', ');
+    return raw;
+  } catch {
+    return raw;
+  }
+}
+
 export default function DossierScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [dossier, setDossier] = useState<DossierDetail | null>(null);
+  const [detail, setDetail] = useState<DossierDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('discussion');
   const [message, setMessage] = useState('');
@@ -62,7 +72,7 @@ export default function DossierScreen() {
     if (!code || !id) return;
     try {
       const data = await getTechDossierDetail(code, parseInt(id));
-      setDossier(data);
+      setDetail(data);
     } catch (e) {
       console.error('Erreur chargement dossier:', e);
     } finally {
@@ -87,7 +97,6 @@ export default function DossierScreen() {
       });
       setMessage('');
       await fetchDossier();
-      // Scroll to bottom
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 200);
     } catch (e) {
       Alert.alert('Erreur', "Impossible d'envoyer le message");
@@ -133,12 +142,12 @@ export default function DossierScreen() {
       const mime = asset.mimeType || 'image/jpeg';
       const fileName = asset.fileName || `photo_${Date.now()}.jpg`;
       
-      // Envoyer comme pièce jointe dans un commentaire
+      // Backend attend pieceJointeBase64 (pas pieceJointe)
       await addCommentaire({
         code,
         dossierId: parseInt(id),
         contenu: '📷 Photo envoyée',
-        pieceJointe: `data:${mime};base64,${base64}`,
+        pieceJointeBase64: base64 || '',
         pieceJointeNom: fileName,
         pieceJointeMime: mime,
       });
@@ -181,7 +190,7 @@ export default function DossierScreen() {
     );
   }
 
-  if (!dossier) {
+  if (!detail) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFB' }}>
         <Text style={{ color: '#687076' }}>Dossier introuvable</Text>
@@ -189,8 +198,17 @@ export default function DossierScreen() {
     );
   }
 
-  // Grouper les messages par date
-  const sortedComments = [...(dossier.commentaires || [])].sort((a, b) => a.createdAt - b.createdAt);
+  const { dossier, checklists, commentaires, tachesLiees } = detail;
+
+  // Trier les commentaires par date
+  const sortedComments = [...(commentaires || [])].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  // Extraire les photos des commentaires (pièces jointes de type image)
+  const photos = commentaires
+    .filter(c => c.pieceJointeUrl && c.pieceJointeType === 'image')
+    .map(c => ({ id: c.id, url: c.pieceJointeUrl!, createdAt: c.createdAt }));
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F8FAFB', paddingTop: insets.top }}>
@@ -209,10 +227,10 @@ export default function DossierScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={{ fontSize: 16, fontWeight: '700', color: '#11181C' }} numberOfLines={1}>
-            {dossier.nom} {dossier.prenom}
+            Chantier — {dossier.nom} {dossier.prenom}
           </Text>
           <Text style={{ fontSize: 12, color: '#687076' }} numberOfLines={1}>
-            {dossier.typesTravaux || 'Chantier'} — {dossier.ville}
+            {parseTypesTravaux(dossier.typesTravaux)} — {dossier.ville || 'Ville non renseignée'}
           </Text>
         </View>
       </View>
@@ -276,7 +294,7 @@ export default function DossierScreen() {
             contentContainerStyle={{ padding: 12, paddingBottom: 8 }}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             renderItem={({ item, index }) => {
-              const isMe = item.auteur === `${partenaire?.prenom} ${partenaire?.nom}`;
+              const isMe = item.auteurNom === `${partenaire?.prenom} ${partenaire?.nom}`;
               const showDate = index === 0 || 
                 formatMessageDate(item.createdAt) !== formatMessageDate(sortedComments[index - 1].createdAt);
 
@@ -303,7 +321,7 @@ export default function DossierScreen() {
                   }}>
                     {!isMe && (
                       <Text style={{ fontSize: 11, color: '#1B7D4B', fontWeight: '600', marginBottom: 2, marginLeft: 4 }}>
-                        {item.auteur}
+                        {item.auteurNom}
                       </Text>
                     )}
                     <View style={{
@@ -319,9 +337,10 @@ export default function DossierScreen() {
                       shadowRadius: 2,
                       elevation: 1,
                     }}>
-                      {item.pieceJointe && item.pieceJointeMime?.startsWith('image/') && (
+                      {/* Afficher la pièce jointe image */}
+                      {item.pieceJointeUrl && item.pieceJointeType === 'image' && (
                         <Image
-                          source={{ uri: item.pieceJointe }}
+                          source={{ uri: item.pieceJointeUrl }}
                           style={{
                             width: 200,
                             height: 150,
@@ -330,6 +349,18 @@ export default function DossierScreen() {
                           }}
                           resizeMode="cover"
                         />
+                      )}
+                      {/* Afficher la pièce jointe PDF */}
+                      {item.pieceJointeUrl && item.pieceJointeType === 'pdf' && (
+                        <TouchableOpacity
+                          onPress={() => Linking.openURL(item.pieceJointeUrl!)}
+                          style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}
+                        >
+                          <Ionicons name="document" size={16} color={isMe ? '#fff' : '#1B7D4B'} />
+                          <Text style={{ fontSize: 13, color: isMe ? '#fff' : '#1B7D4B', marginLeft: 4, textDecorationLine: 'underline' }}>
+                            {item.pieceJointeNom || 'Document PDF'}
+                          </Text>
+                        </TouchableOpacity>
                       )}
                       <Text style={{ fontSize: 15, color: isMe ? '#fff' : '#11181C', lineHeight: 20 }}>
                         {item.contenu}
@@ -427,17 +458,17 @@ export default function DossierScreen() {
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#11181C', marginBottom: 12 }}>
               Informations client
             </Text>
-            <InfoRow icon="person" label="Client" value={`${dossier.nom} ${dossier.prenom}`} />
+            <InfoRow icon="person" label="Client" value={`${dossier.prenom || ''} ${dossier.nom || ''}`.trim() || '—'} />
             <InfoRow icon="location" label="Adresse" value={dossier.adresse || '—'} />
             <InfoRow icon="business" label="Ville" value={dossier.ville || '—'} />
-            {dossier.telephone && (
+            {dossier.telephone ? (
               <TouchableOpacity onPress={() => Linking.openURL(`tel:${dossier.telephone}`)}>
                 <InfoRow icon="call" label="Téléphone" value={dossier.telephone} valueColor="#1B7D4B" />
               </TouchableOpacity>
-            )}
-            {dossier.email && (
+            ) : null}
+            {dossier.email ? (
               <InfoRow icon="mail" label="Email" value={dossier.email} />
-            )}
+            ) : null}
           </View>
 
           {/* Infos chantier */}
@@ -455,22 +486,22 @@ export default function DossierScreen() {
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#11181C', marginBottom: 12 }}>
               Détails du chantier
             </Text>
-            <InfoRow icon="construct" label="Type" value={dossier.typesTravaux || '—'} />
+            <InfoRow icon="construct" label="Type" value={parseTypesTravaux(dossier.typesTravaux)} />
             <InfoRow icon="flag" label="Statut" value={dossier.statut || '—'} />
             <InfoRow icon="briefcase" label="Société" value={dossier.societe || '—'} />
-            {dossier.donneurOrdre && (
+            {dossier.donneurOrdre ? (
               <InfoRow icon="people" label="Donneur d'ordre" value={dossier.donneurOrdre} />
-            )}
-            {dossier.notes && (
+            ) : null}
+            {dossier.notes ? (
               <View style={{ marginTop: 8 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: '#687076', marginBottom: 4 }}>Notes :</Text>
                 <Text style={{ fontSize: 14, color: '#11181C', lineHeight: 20 }}>{dossier.notes}</Text>
               </View>
-            )}
+            ) : null}
           </View>
 
           {/* Checklist */}
-          {dossier.checklist && dossier.checklist.length > 0 && (
+          {checklists && checklists.length > 0 && (
             <View style={{
               backgroundColor: '#fff',
               borderRadius: 12,
@@ -483,9 +514,9 @@ export default function DossierScreen() {
               elevation: 1,
             }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#11181C', marginBottom: 12 }}>
-                Checklist ({dossier.checklist.filter(c => c.fait).length}/{dossier.checklist.length})
+                Checklist ({checklists.filter(c => c.fait).length}/{checklists.length})
               </Text>
-              {dossier.checklist.map((item) => (
+              {checklists.map((item) => (
                 <TouchableOpacity
                   key={item.id}
                   onPress={() => handleToggleChecklist(item)}
@@ -508,7 +539,7 @@ export default function DossierScreen() {
                     marginLeft: 10,
                     flex: 1,
                   }}>
-                    {item.label}
+                    {item.titre}
                   </Text>
                   {item.faitPar && (
                     <Text style={{ fontSize: 11, color: '#9BA1A6' }}>{item.faitPar}</Text>
@@ -518,8 +549,8 @@ export default function DossierScreen() {
             </View>
           )}
 
-          {/* Photos */}
-          {dossier.photos && dossier.photos.length > 0 && (
+          {/* Photos (extraites des commentaires) */}
+          {photos.length > 0 && (
             <View style={{
               backgroundColor: '#fff',
               borderRadius: 12,
@@ -532,10 +563,10 @@ export default function DossierScreen() {
               elevation: 1,
             }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#11181C', marginBottom: 12 }}>
-                Photos ({dossier.photos.length})
+                Photos ({photos.length})
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {dossier.photos.map((photo) => (
+                {photos.map((photo) => (
                   <Image
                     key={photo.id}
                     source={{ uri: photo.url }}
@@ -544,6 +575,62 @@ export default function DossierScreen() {
                   />
                 ))}
               </View>
+            </View>
+          )}
+
+          {/* Tâches liées */}
+          {tachesLiees && tachesLiees.length > 0 && (
+            <View style={{
+              backgroundColor: '#fff',
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 3,
+              elevation: 1,
+            }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#11181C', marginBottom: 12 }}>
+                Tâches ({tachesLiees.length})
+              </Text>
+              {tachesLiees.map((tache) => (
+                <View key={tache.id} style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 10,
+                  borderBottomWidth: 0.5,
+                  borderBottomColor: '#F3F4F6',
+                }}>
+                  <Ionicons
+                    name={tache.statut === 'termine' ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={20}
+                    color={tache.statut === 'termine' ? '#1B7D4B' : '#F59E0B'}
+                  />
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={{ fontSize: 14, color: '#11181C' }}>{tache.titre}</Text>
+                    {tache.assigneNom && (
+                      <Text style={{ fontSize: 12, color: '#687076', marginTop: 2 }}>
+                        Assigné à {tache.assigneNom}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 8,
+                    backgroundColor: tache.statut === 'termine' ? '#DCFCE7' : '#FEF3C7',
+                  }}>
+                    <Text style={{
+                      fontSize: 11,
+                      fontWeight: '600',
+                      color: tache.statut === 'termine' ? '#166534' : '#92400E',
+                    }}>
+                      {tache.statut === 'termine' ? 'Terminé' : tache.statut === 'en_cours' ? 'En cours' : 'À faire'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
           )}
 

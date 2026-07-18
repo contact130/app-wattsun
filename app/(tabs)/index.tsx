@@ -34,7 +34,7 @@ function getTypeIcon(type: string | null): string {
   return 'construct';
 }
 
-function formatDate(timestamp: number | null): string {
+function formatDate(timestamp: number | string | null): string {
   if (!timestamp) return '';
   const d = new Date(timestamp);
   const now = new Date();
@@ -60,7 +60,11 @@ export default function ChantiersList() {
     try {
       const data = await getTechDossiers(code);
       // Trier par updatedAt décroissant (comme WhatsApp - dernière activité en haut)
-      data.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      data.sort((a, b) => {
+        const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const tB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return tB - tA;
+      });
       setDossiers(data);
     } catch (e) {
       console.error('Erreur chargement dossiers:', e);
