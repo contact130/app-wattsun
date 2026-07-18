@@ -106,12 +106,12 @@ export async function toggleChecklist(data: {
 
 // Récupérer les notifications
 export async function getNotifications(code: string): Promise<Notification[]> {
-  return await trpcQuery('portail.getNotifications', { code });
+  return await trpcQuery('notifications.partenaireNotifs', { code });
 }
 
 // Marquer toutes les notifications comme lues
 export async function markAllRead(code: string): Promise<{ success: boolean }> {
-  return await trpcMutation('partenaireMarkAllRead', { code });
+  return await trpcMutation('notifications.partenaireMarkAllRead', { code });
 }
 
 // Enregistrer la subscription push
