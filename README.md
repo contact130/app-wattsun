@@ -93,8 +93,8 @@ const API_BASE_URL = 'https://appwattsun.manus.space';
 
 ## Stack technique
 
-- **Framework** : Expo SDK 57 + React Native 0.86
-- **Routing** : Expo Router (file-based)
+- **Framework** : Expo SDK 54 + React Native 0.81
+- **Routing** : Expo Router 6 (file-based)
 - **Navigation** : React Navigation (Bottom Tabs)
 - **HTTP** : Axios
 - **Notifications** : Expo Notifications
