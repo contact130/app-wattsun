@@ -66,18 +66,25 @@ function formatTypesTravaux(raw: string | null): string {
 
 function formatStatutLabel(raw: string | null): string {
   if (!raw) return '';
-  const formatted = raw.replace(/_/g, ' ');
+  // Remplacer les underscores par des espaces
+  let formatted = raw.replace(/_/g, ' ');
+  // Corriger les accents manquants
+  if (formatted.toLowerCase() === 'livre') formatted = 'Livré';
+  if (formatted.toLowerCase() === 'en cours') formatted = 'En cours';
+  if (formatted.toLowerCase() === 'termine') formatted = 'Terminé';
+  if (formatted.toLowerCase() === 'annule') formatted = 'Annulé';
+  if (formatted.toLowerCase() === 'cloture') formatted = 'Clôturé';
   return capitalizeFirst(formatted);
 }
 
 function getStatutBadgeColor(statut: string | null): { bg: string; text: string } {
   if (!statut) return { bg: '#F3F4F6', text: '#6B7280' };
   const s = statut.toLowerCase();
-  if (s.includes('en_cours') || s.includes('en cours')) return { bg: '#DCFCE7', text: '#166534' };
-  if (s.includes('livre') || s.includes('livré')) return { bg: '#DBEAFE', text: '#1E40AF' };
+  if (s.includes('en_cours') || s.includes('en cours')) return { bg: '#FEF3C7', text: '#92400E' };
+  if (s.includes('livre') || s.includes('livré')) return { bg: '#DCFCE7', text: '#166534' };
   if (s.includes('termin') || s.includes('clotur')) return { bg: '#E0E7FF', text: '#3730A3' };
   if (s.includes('annul')) return { bg: '#FEE2E2', text: '#991B1B' };
-  if (s.includes('attente') || s.includes('pause')) return { bg: '#FEF3C7', text: '#92400E' };
+  if (s.includes('attente') || s.includes('pause')) return { bg: '#F3F4F6', text: '#6B7280' };
   return { bg: '#F3F4F6', text: '#374151' };
 }
 
