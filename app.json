@@ -7,7 +7,12 @@
     "icon": "./assets/icon.png",
     "scheme": "appwattsun",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1B7D4B"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.wattsun.apptech",
@@ -30,8 +35,7 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "POST_NOTIFICATIONS"
-      ],
-      "predictiveBackGestureEnabled": false
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -47,9 +51,6 @@
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
       "apiUrl": "https://appwattsun.manus.space"
     }
