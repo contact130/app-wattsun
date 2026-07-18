@@ -25,12 +25,16 @@ import {
   getTechDossierDetail,
   addCommentaire,
   toggleChecklist,
+  listTechniciens,
+  getDossierAssignations,
+  assignTechniciens,
   DossierDetailResponse,
   Commentaire,
   ChecklistItem,
+  TechnicienItem,
 } from '../../src/api/portail';
 
-type Tab = 'discussion' | 'infos';
+type Tab = 'discussion' | 'infos' | 'techniciens';
 
 function formatMessageTime(timestamp: string | number): string {
   const d = new Date(timestamp);
@@ -97,7 +101,11 @@ export default function DossierScreen() {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
+  const [techniciensList, setTechniciensList] = useState<TechnicienItem[]>([]);
+  const [assignedIds, setAssignedIds] = useState<number[]>([]);
+  const [savingAssign, setSavingAssign] = useState(false);
   const { code, partenaire } = useAuth();
+  const isAdmin = partenaire?.role === 'admin';
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
@@ -119,6 +127,41 @@ export default function DossierScreen() {
     const interval = setInterval(fetchDossier, 10000);
     return () => clearInterval(interval);
   }, [fetchDossier]);
+
+  // Charger les techniciens et assignations pour les admins
+  useEffect(() => {
+    if (!isAdmin || !code || !id) return;
+    (async () => {
+      try {
+        const [techs, assigns] = await Promise.all([
+          listTechniciens(code),
+          getDossierAssignations(code, parseInt(id)),
+        ]);
+        setTechniciensList(techs);
+        setAssignedIds(assigns.map((a) => a.partenaireId));
+      } catch (e) {
+        console.error('Erreur chargement assignations:', e);
+      }
+    })();
+  }, [isAdmin, code, id]);
+
+  async function handleToggleAssign(techId: number) {
+    if (!code || !id || savingAssign) return;
+    const newIds = assignedIds.includes(techId)
+      ? assignedIds.filter((i) => i !== techId)
+      : [...assignedIds, techId];
+    setAssignedIds(newIds);
+    setSavingAssign(true);
+    try {
+      await assignTechniciens({ code, dossierId: parseInt(id), partenaireIds: newIds });
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message || 'Impossible de modifier les assignations');
+      // Rollback
+      setAssignedIds(assignedIds);
+    } finally {
+      setSavingAssign(false);
+    }
+  }
 
   async function handleSend() {
     if (!message.trim() || !code || !id || sending) return;
@@ -318,6 +361,26 @@ export default function DossierScreen() {
             Infos chantier
           </Text>
         </TouchableOpacity>
+        {isAdmin && (
+          <TouchableOpacity
+            onPress={() => setTab('techniciens')}
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              alignItems: 'center',
+              borderBottomWidth: 2,
+              borderBottomColor: tab === 'techniciens' ? '#1B7D4B' : 'transparent',
+            }}
+          >
+            <Text style={{
+              fontSize: 14,
+              fontWeight: '600',
+              color: tab === 'techniciens' ? '#1B7D4B' : '#9BA1A6',
+            }}>
+              Techniciens
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {tab === 'discussion' ? (
@@ -705,6 +768,77 @@ export default function DossierScreen() {
             </View>
           )}
 
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      )}
+
+      {tab === 'techniciens' && isAdmin && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 12,
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 3,
+            elevation: 1,
+          }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#11181C', marginBottom: 4 }}>
+              Assigner des techniciens
+            </Text>
+            <Text style={{ fontSize: 13, color: '#687076', marginBottom: 16 }}>
+              Cochez les techniciens qui doivent voir ce chantier
+            </Text>
+            {techniciensList.map((tech) => {
+              const isAssigned = assignedIds.includes(tech.id);
+              return (
+                <TouchableOpacity
+                  key={tech.id}
+                  onPress={() => handleToggleAssign(tech.id)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    borderBottomWidth: 0.5,
+                    borderBottomColor: '#F3F4F6',
+                  }}
+                >
+                  <Ionicons
+                    name={isAssigned ? 'checkbox' : 'square-outline'}
+                    size={22}
+                    color={isAssigned ? '#1B7D4B' : '#D1D5DB'}
+                  />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '500', color: '#11181C' }}>
+                      {tech.prenom} {tech.nom}
+                    </Text>
+                    {tech.entreprise ? (
+                      <Text style={{ fontSize: 12, color: '#687076', marginTop: 2 }}>
+                        {tech.entreprise}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {isAssigned && (
+                    <View style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: 8,
+                      backgroundColor: '#DCFCE7',
+                    }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#166534' }}>Assigné</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+            {savingAssign && (
+              <View style={{ alignItems: 'center', marginTop: 12 }}>
+                <ActivityIndicator size="small" color="#1B7D4B" />
+                <Text style={{ fontSize: 12, color: '#687076', marginTop: 4 }}>Enregistrement...</Text>
+              </View>
+            )}
+          </View>
           <View style={{ height: 40 }} />
         </ScrollView>
       )}

@@ -207,6 +207,8 @@ export default function ChantiersList() {
     );
   }
 
+  const isAdmin = partenaire?.role === 'admin';
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F8FAFB', paddingTop: insets.top }}>
       {/* Header */}
@@ -216,13 +218,33 @@ export default function ChantiersList() {
         backgroundColor: '#fff',
         borderBottomWidth: 0.5,
         borderBottomColor: '#E5E7EB',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
       }}>
-        <Text style={{ fontSize: 24, fontWeight: '700', color: '#11181C' }}>
-          Mes chantiers
-        </Text>
-        <Text style={{ fontSize: 13, color: '#687076', marginTop: 2 }}>
-          {partenaire?.prenom} {partenaire?.nom} — {dossiers.length} dossier{dossiers.length > 1 ? 's' : ''}
-        </Text>
+        <View>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: '#11181C' }}>
+            {isAdmin ? 'Tous les chantiers' : 'Mes chantiers'}
+          </Text>
+          <Text style={{ fontSize: 13, color: '#687076', marginTop: 2 }}>
+            {partenaire?.prenom} {partenaire?.nom} {isAdmin ? '(Admin)' : ''} — {dossiers.length} dossier{dossiers.length > 1 ? 's' : ''}
+          </Text>
+        </View>
+        {isAdmin && (
+          <TouchableOpacity
+            onPress={() => router.push('/nouveau-chantier')}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: '#1B7D4B',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Ionicons name="add" size={28} color="#fff" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Liste */}

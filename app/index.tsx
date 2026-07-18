@@ -75,7 +75,7 @@ export default function LoginScreen() {
             <Text style={{ fontSize: 36, color: '#fff', fontWeight: 'bold' }}>W</Text>
           </View>
           <Text style={{ fontSize: 28, fontWeight: '700', color: '#11181C' }}>App Wattsun</Text>
-          <Text style={{ fontSize: 15, color: '#687076', marginTop: 4 }}>Espace Technicien</Text>
+          <Text style={{ fontSize: 15, color: '#687076', marginTop: 4 }}>Gestion de chantier</Text>
         </View>
 
         {/* Input code */}
@@ -86,7 +86,7 @@ export default function LoginScreen() {
           <TextInput
             value={code}
             onChangeText={(t) => { setCode(t); setError(''); }}
-            placeholder="Ex: WE-NICO01"
+            placeholder="Ex: BENARD2026"
             placeholderTextColor="#9BA1A6"
             autoCapitalize="characters"
             autoCorrect={false}
@@ -130,7 +130,7 @@ export default function LoginScreen() {
 
         {/* Footer */}
         <Text style={{ marginTop: 40, color: '#9BA1A6', fontSize: 12 }}>
-          App Wattsun® — Espace Technicien
+          App Wattsun®
         </Text>
       </View>
     </KeyboardAvoidingView>

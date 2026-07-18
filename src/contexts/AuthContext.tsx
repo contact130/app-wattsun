@@ -47,8 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const p = await verifyCode(inputCode);
-      if (p.type !== 'technicien') {
-        throw new Error("Ce code n'est pas un code technicien");
+      // Accepter les techniciens ET les admins (qui sont aussi de type technicien)
+      if (p.type === 'donneur_ordre') {
+        throw new Error("Ce code n'est pas un code technicien/admin");
       }
       await saveCode(inputCode);
       setPartenaire(p);

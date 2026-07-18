@@ -6,7 +6,16 @@ export interface Partenaire {
   prenom: string;
   entreprise: string | null;
   type: string;
+  role: 'admin' | 'technicien';
   specialites: string | null;
+}
+
+export interface TechnicienItem {
+  id: number;
+  nom: string;
+  prenom: string;
+  entreprise: string | null;
+  codeAcces: string;
 }
 
 export interface Dossier {
@@ -145,4 +154,40 @@ export async function subscribePush(data: {
   auth: string;
 }): Promise<{ id: number }> {
   return await trpcMutation('pushNotifications.subscribe', data);
+}
+
+// ─── Admin endpoints ─────────────────────────────────────────────────
+
+// Liste des techniciens (admin only)
+export async function listTechniciens(code: string): Promise<TechnicienItem[]> {
+  return await trpcQuery('portail.listTechniciens', { code });
+}
+
+// Assigner des techniciens à un dossier (admin only)
+export async function assignTechniciens(data: {
+  code: string;
+  dossierId: number;
+  partenaireIds: number[];
+}): Promise<{ success: boolean }> {
+  return await trpcMutation('portail.assignTechniciens', data);
+}
+
+// Récupérer les assignations d'un dossier (admin only)
+export async function getDossierAssignations(code: string, dossierId: number): Promise<{ id: number; partenaireId: number; assignedAt: string }[]> {
+  return await trpcQuery('portail.getDossierAssignations', { code, dossierId });
+}
+
+// Créer un nouveau dossier (admin only)
+export async function createDossier(data: {
+  code: string;
+  nom: string;
+  prenom?: string;
+  ville?: string;
+  typesTravaux?: string;
+  telephone?: string;
+  email?: string;
+  adresse?: string;
+  societe?: 'wattsun' | 'wattco';
+}): Promise<{ id: number }> {
+  return await trpcMutation('portail.createDossier', data);
 }

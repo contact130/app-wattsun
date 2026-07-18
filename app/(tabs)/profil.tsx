@@ -95,7 +95,7 @@ export default function ProfilScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Ionicons name="shield-checkmark" size={16} color="#1B7D4B" />
             <Text style={{ fontSize: 14, color: '#1B7D4B', marginLeft: 8, fontWeight: '500' }}>
-              Technicien actif
+              {partenaire?.role === 'admin' ? 'Administrateur' : 'Technicien'} actif
             </Text>
           </View>
         </View>
