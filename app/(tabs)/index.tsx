@@ -1,0 +1,202 @@
+import { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { getTechDossiers, Dossier } from '../../src/api/portail';
+
+// Couleurs par type de travaux
+function getTypeColor(type: string | null): string {
+  if (!type) return '#9BA1A6';
+  const t = type.toLowerCase();
+  if (t.includes('pac') || t.includes('pompe')) return '#3B82F6';
+  if (t.includes('photo') || t.includes('pv') || t.includes('solaire')) return '#F59E0B';
+  if (t.includes('isol') || t.includes('ite') || t.includes('iti')) return '#8B5CF6';
+  if (t.includes('ballon') || t.includes('ecs') || t.includes('thermo')) return '#06B6D4';
+  return '#1B7D4B';
+}
+
+function getTypeIcon(type: string | null): string {
+  if (!type) return 'construct';
+  const t = type.toLowerCase();
+  if (t.includes('pac') || t.includes('pompe')) return 'snow';
+  if (t.includes('photo') || t.includes('pv') || t.includes('solaire')) return 'sunny';
+  if (t.includes('isol') || t.includes('ite') || t.includes('iti')) return 'layers';
+  if (t.includes('ballon') || t.includes('ecs') || t.includes('thermo')) return 'water';
+  return 'construct';
+}
+
+function formatDate(timestamp: number | null): string {
+  if (!timestamp) return '';
+  const d = new Date(timestamp);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  
+  if (days === 0) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (days === 1) return 'Hier';
+  if (days < 7) return d.toLocaleDateString('fr-FR', { weekday: 'short' });
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+}
+
+export default function ChantiersList() {
+  const [dossiers, setDossiers] = useState<Dossier[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const { code, partenaire } = useAuth();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  const fetchDossiers = useCallback(async () => {
+    if (!code) return;
+    try {
+      const data = await getTechDossiers(code);
+      // Trier par updatedAt décroissant (comme WhatsApp - dernière activité en haut)
+      data.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      setDossiers(data);
+    } catch (e) {
+      console.error('Erreur chargement dossiers:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [code]);
+
+  useEffect(() => {
+    fetchDossiers();
+    // Polling toutes les 15 secondes
+    const interval = setInterval(fetchDossiers, 15000);
+    return () => clearInterval(interval);
+  }, [fetchDossiers]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchDossiers();
+  }, [fetchDossiers]);
+
+  function renderDossier({ item }: { item: Dossier }) {
+    const color = getTypeColor(item.typesTravaux);
+    const icon = getTypeIcon(item.typesTravaux);
+    
+    return (
+      <TouchableOpacity
+        onPress={() => router.push(`/dossier/${item.id}`)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          backgroundColor: '#fff',
+          borderBottomWidth: 0.5,
+          borderBottomColor: '#E5E7EB',
+        }}
+        activeOpacity={0.6}
+      >
+        {/* Avatar / Icône type */}
+        <View style={{
+          width: 52,
+          height: 52,
+          borderRadius: 26,
+          backgroundColor: color + '15',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginRight: 12,
+        }}>
+          <Ionicons name={icon as any} size={24} color={color} />
+        </View>
+
+        {/* Infos */}
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: '#11181C' }} numberOfLines={1}>
+              {item.nom} {item.prenom}
+            </Text>
+            <Text style={{ fontSize: 12, color: '#9BA1A6' }}>
+              {formatDate(item.updatedAt)}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
+            <Text style={{ fontSize: 13, color: '#687076', flex: 1 }} numberOfLines={1}>
+              {item.typesTravaux || 'Chantier'} — {item.ville || 'Ville non renseignée'}
+            </Text>
+          </View>
+          {item.statut && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <View style={{
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: 10,
+                backgroundColor: item.statut === 'En cours' ? '#DCFCE7' : '#F3F4F6',
+              }}>
+                <Text style={{
+                  fontSize: 11,
+                  fontWeight: '500',
+                  color: item.statut === 'En cours' ? '#166534' : '#6B7280',
+                }}>
+                  {item.statut}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Chevron */}
+        <Ionicons name="chevron-forward" size={18} color="#D1D5DB" style={{ marginLeft: 8 }} />
+      </TouchableOpacity>
+    );
+  }
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFB' }}>
+        <ActivityIndicator size="large" color="#1B7D4B" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#F8FAFB', paddingTop: insets.top }}>
+      {/* Header */}
+      <View style={{
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        backgroundColor: '#fff',
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#E5E7EB',
+      }}>
+        <Text style={{ fontSize: 24, fontWeight: '700', color: '#11181C' }}>
+          Mes chantiers
+        </Text>
+        <Text style={{ fontSize: 13, color: '#687076', marginTop: 2 }}>
+          {partenaire?.prenom} {partenaire?.nom} — {dossiers.length} dossier{dossiers.length > 1 ? 's' : ''}
+        </Text>
+      </View>
+
+      {/* Liste */}
+      <FlatList
+        data={dossiers}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderDossier}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B7D4B" />
+        }
+        ListEmptyComponent={
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 }}>
+            <Ionicons name="construct-outline" size={48} color="#D1D5DB" />
+            <Text style={{ fontSize: 16, color: '#687076', marginTop: 12 }}>
+              Aucun chantier assigné
+            </Text>
+          </View>
+        }
+      />
+    </View>
+  );
+}
