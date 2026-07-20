@@ -43,6 +43,13 @@
       "expo-router",
       "expo-secure-store",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1B7D4B"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "L'app a besoin d'accéder à vos photos pour envoyer des images de chantier.",
@@ -51,7 +58,10 @@
       ]
     ],
     "extra": {
-      "apiUrl": "https://appwattsun.manus.space"
+      "apiUrl": "https://appwattsun.manus.space",
+      "eas": {
+        "projectId": "eb1457bd-f083-40b5-af93-d31c9bad5cf0"
+      }
     }
   }
 }
