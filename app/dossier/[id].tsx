@@ -28,6 +28,7 @@ import {
   listTechniciens,
   getDossierAssignations,
   assignTechniciens,
+  markReadForDossier,
   DossierDetailResponse,
   Commentaire,
   ChecklistItem,
@@ -127,6 +128,12 @@ export default function DossierScreen() {
     const interval = setInterval(fetchDossier, 10000);
     return () => clearInterval(interval);
   }, [fetchDossier]);
+
+  // Marquer les notifications comme lues pour ce dossier à l'ouverture
+  useEffect(() => {
+    if (!code || !id) return;
+    markReadForDossier(code, parseInt(id)).catch(() => {});
+  }, [code, id]);
 
   // Charger les techniciens et assignations pour les admins
   useEffect(() => {

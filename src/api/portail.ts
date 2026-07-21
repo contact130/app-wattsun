@@ -196,3 +196,8 @@ export async function createDossier(data: {
 export async function getUnreadByDossier(code: string): Promise<Record<string, number>> {
   return await trpcQuery('notifications.partenaireUnreadByDossier', { code });
 }
+
+// Marquer les notifications comme lues pour un dossier spécifique
+export async function markReadForDossier(code: string, dossierId: number): Promise<{ success: boolean }> {
+  return await trpcMutation('notifications.partenaireMarkReadForDossier', { code, dossierId });
+}

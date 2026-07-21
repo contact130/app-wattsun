@@ -20,7 +20,8 @@ export default function ProfilScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            // La redirection est gérée automatiquement par le useEffect dans _layout.tsx
+            // Forcer la navigation vers le login immédiatement
+            router.replace('/');
           },
         },
       ]
@@ -124,7 +125,7 @@ export default function ProfilScreen() {
 
       {/* Version */}
       <View style={{ position: 'absolute', bottom: 40 + insets.bottom, left: 0, right: 0, alignItems: 'center' }}>
-        <Text style={{ fontSize: 12, color: '#D1D5DB' }}>App Wattsun® v1.0.0</Text>
+        <Text style={{ fontSize: 12, color: '#D1D5DB' }}>App Wattsun® v1.0.2</Text>
       </View>
     </View>
   );

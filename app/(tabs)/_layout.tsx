@@ -1,32 +1,32 @@
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, useRouter, useRootNavigationState } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { usePushNotifications } from '../../src/hooks/usePushNotifications';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function TabsLayout() {
   const { partenaire, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const hasRedirected = useRef(false);
+  const navigationState = useRootNavigationState();
 
   usePushNotifications(partenaire?.id || null);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !hasRedirected.current) {
-      hasRedirected.current = true;
-      // Use setTimeout to ensure navigation happens after the current render cycle
-      setTimeout(() => {
+    // Attendre que la navigation soit prête
+    if (!navigationState?.key) return;
+    
+    if (!isLoading && !isAuthenticated) {
+      // Utiliser un petit délai pour s'assurer que le state est bien propagé
+      const timer = setTimeout(() => {
         router.replace('/');
-      }, 50);
+      }, 100);
+      return () => clearTimeout(timer);
     }
-    if (isAuthenticated) {
-      hasRedirected.current = false;
-    }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, navigationState?.key]);
 
-  // Don't render tabs if not authenticated - show blank screen while redirecting
-  if (!isLoading && !isAuthenticated) {
+  // Afficher un loader pendant le chargement ou la redirection
+  if (isLoading || !isAuthenticated) {
     return (
       <View style={{ flex: 1, backgroundColor: '#F8FAFB', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#1B7D4B" />
