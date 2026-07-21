@@ -36,6 +36,14 @@ export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  // Nettoyer les données quand l'utilisateur se déconnecte
+  useEffect(() => {
+    if (!code) {
+      setNotifications([]);
+      setLoading(false);
+    }
+  }, [code]);
+
   const fetchNotifications = useCallback(async () => {
     if (!code) return;
     try {

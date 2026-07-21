@@ -96,6 +96,14 @@ export default function ChantiersList() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  // Nettoyer les données quand l'utilisateur se déconnecte
+  useEffect(() => {
+    if (!code) {
+      setDossiers([]);
+      setLoading(false);
+    }
+  }, [code]);
+
   const fetchDossiers = useCallback(async () => {
     if (!code) return;
     try {
