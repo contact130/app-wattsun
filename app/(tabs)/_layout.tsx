@@ -1,36 +1,12 @@
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { usePushNotifications } from '../../src/hooks/usePushNotifications';
-import { useEffect } from 'react';
 
 export default function TabsLayout() {
-  const { partenaire, isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+  const { partenaire } = useAuth();
 
   usePushNotifications(partenaire?.id || null);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      // Vider toute la stack puis aller au login
-      try {
-        router.dismissAll();
-      } catch (e) {
-        // dismissAll peut échouer si pas de stack à dismiss
-      }
-      router.replace('/');
-    }
-  }, [isAuthenticated, isLoading]);
-
-  // Ne pas bloquer avec un loader - laisser le replace se faire
-  if (isLoading) {
-    return null;
-  }
-
-  if (!isAuthenticated) {
-    // Ne rien rendre, le useEffect va rediriger
-    return null;
-  }
 
   return (
     <Tabs

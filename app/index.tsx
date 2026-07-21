@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -7,36 +7,14 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useAuth } from '../src/contexts/AuthContext';
 
 export default function LoginScreen() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login, isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      router.replace('/(tabs)');
-    }
-  }, [isAuthenticated, isLoading]);
-
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFB' }}>
-        <ActivityIndicator size="large" color="#1B7D4B" />
-        <Text style={{ marginTop: 16, color: '#687076', fontSize: 16 }}>Chargement...</Text>
-      </View>
-    );
-  }
-
-  if (isAuthenticated) {
-    return null;
-  }
+  const { login } = useAuth();
 
   async function handleLogin() {
     if (!code.trim()) {
@@ -47,7 +25,7 @@ export default function LoginScreen() {
     setError('');
     try {
       await login(code.trim().toUpperCase());
-      router.replace('/(tabs)');
+      // La redirection est gérée automatiquement par le _layout racine
     } catch (e: any) {
       setError(e.message || 'Code invalide');
     } finally {

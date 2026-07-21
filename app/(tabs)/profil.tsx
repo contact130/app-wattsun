@@ -1,13 +1,11 @@
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
 
 export default function ProfilScreen() {
   const { partenaire, code, logout } = useAuth();
   const insets = useSafeAreaInsets();
-  const router = useRouter();
 
   function handleLogout() {
     Alert.alert(
@@ -18,13 +16,9 @@ export default function ProfilScreen() {
         {
           text: 'Déconnexion',
           style: 'destructive',
-          onPress: async () => {
-            await logout();
-            // Vider la stack de navigation et aller au login
-            try {
-              router.dismissAll();
-            } catch (e) {}
-            router.replace('/');
+          onPress: () => {
+            // Juste appeler logout - la redirection est gérée par le _layout racine
+            logout();
           },
         },
       ]
