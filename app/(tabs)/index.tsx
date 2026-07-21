@@ -11,7 +11,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { getTechDossiers, Dossier } from '../../src/api/portail';
+import { getTechDossiers, Dossier, getUnreadByDossier } from '../../src/api/portail';
 
 // Couleurs par type de travaux
 function getTypeColor(type: string | null): string {
@@ -92,6 +92,7 @@ export default function ChantiersList() {
   const [dossiers, setDossiers] = useState<Dossier[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const { code, partenaire } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -100,6 +101,7 @@ export default function ChantiersList() {
   useEffect(() => {
     if (!code) {
       setDossiers([]);
+      setUnreadCounts({});
       setLoading(false);
     }
   }, [code]);
@@ -107,7 +109,10 @@ export default function ChantiersList() {
   const fetchDossiers = useCallback(async () => {
     if (!code) return;
     try {
-      const data = await getTechDossiers(code);
+      const [data, unread] = await Promise.all([
+        getTechDossiers(code),
+        getUnreadByDossier(code).catch(() => ({})),
+      ]);
       // Trier par updatedAt décroissant (comme WhatsApp - dernière activité en haut)
       data.sort((a, b) => {
         const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -115,6 +120,7 @@ export default function ChantiersList() {
         return tB - tA;
       });
       setDossiers(data);
+      setUnreadCounts(unread);
     } catch (e) {
       console.error('Erreur chargement dossiers:', e);
     } finally {
@@ -138,6 +144,7 @@ export default function ChantiersList() {
   function renderDossier({ item }: { item: Dossier }) {
     const color = getTypeColor(item.typesTravaux);
     const icon = getTypeIcon(item.typesTravaux);
+    const unreadCount = unreadCounts[String(item.id)] || 0;
     
     return (
       <TouchableOpacity
@@ -147,7 +154,7 @@ export default function ChantiersList() {
           alignItems: 'center',
           paddingHorizontal: 16,
           paddingVertical: 14,
-          backgroundColor: '#fff',
+          backgroundColor: unreadCount > 0 ? '#F0FDF4' : '#fff',
           borderBottomWidth: 0.5,
           borderBottomColor: '#E5E7EB',
         }}
@@ -169,7 +176,7 @@ export default function ChantiersList() {
         {/* Infos */}
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#11181C' }} numberOfLines={1}>
+            <Text style={{ fontSize: 16, fontWeight: unreadCount > 0 ? '700' : '600', color: '#11181C' }} numberOfLines={1}>
               {item.nom} {item.prenom}
             </Text>
             <Text style={{ fontSize: 12, color: '#9BA1A6' }}>
@@ -181,8 +188,8 @@ export default function ChantiersList() {
               {formatTypesTravaux(item.typesTravaux)} — {item.ville || 'Ville non renseignée'}
             </Text>
           </View>
-          {item.statut && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            {item.statut && (
               <View style={{
                 paddingHorizontal: 8,
                 paddingVertical: 2,
@@ -197,12 +204,31 @@ export default function ChantiersList() {
                   {formatStatutLabel(item.statut)}
                 </Text>
               </View>
-            </View>
-          )}
+            )}
+          </View>
         </View>
 
-        {/* Chevron */}
-        <Ionicons name="chevron-forward" size={18} color="#D1D5DB" style={{ marginLeft: 8 }} />
+        {/* Badge non lus + Chevron */}
+        <View style={{ alignItems: 'center', marginLeft: 8 }}>
+          {unreadCount > 0 ? (
+            <View style={{
+              minWidth: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: '#1B7D4B',
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingHorizontal: 6,
+              marginBottom: 4,
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff' }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </View>
+          ) : (
+            <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+          )}
+        </View>
       </TouchableOpacity>
     );
   }

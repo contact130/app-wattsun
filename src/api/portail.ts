@@ -191,3 +191,8 @@ export async function createDossier(data: {
 }): Promise<{ id: number }> {
   return await trpcMutation('portail.createDossier', data);
 }
+
+// Récupérer le nombre de notifications non lues par dossier
+export async function getUnreadByDossier(code: string): Promise<Record<string, number>> {
+  return await trpcQuery('notifications.partenaireUnreadByDossier', { code });
+}
