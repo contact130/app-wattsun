@@ -383,7 +383,7 @@ export default function DossierScreen() {
         )}
       </View>
 
-      {tab === 'discussion' ? (
+      {tab === 'discussion' && (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
@@ -551,8 +551,8 @@ export default function DossierScreen() {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      ) : (
-        /* Onglet Infos */
+      )}
+      {tab === 'infos' && (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
           {/* Infos client */}
           <View style={{

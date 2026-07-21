@@ -2,18 +2,37 @@ import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { usePushNotifications } from '../../src/hooks/usePushNotifications';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 
 export default function TabsLayout() {
   const { partenaire, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const hasRedirected = useRef(false);
+
   usePushNotifications(partenaire?.id || null);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace('/');
+    if (!isLoading && !isAuthenticated && !hasRedirected.current) {
+      hasRedirected.current = true;
+      // Use setTimeout to ensure navigation happens after the current render cycle
+      setTimeout(() => {
+        router.replace('/');
+      }, 50);
+    }
+    if (isAuthenticated) {
+      hasRedirected.current = false;
     }
   }, [isAuthenticated, isLoading]);
+
+  // Don't render tabs if not authenticated - show blank screen while redirecting
+  if (!isLoading && !isAuthenticated) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F8FAFB', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#1B7D4B" />
+      </View>
+    );
+  }
 
   return (
     <Tabs

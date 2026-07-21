@@ -20,7 +20,7 @@ export default function ProfilScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/');
+            // La redirection est gérée automatiquement par le useEffect dans _layout.tsx
           },
         },
       ]
