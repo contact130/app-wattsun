@@ -8,10 +8,10 @@
       "android": {
         "buildType": "apk"
       },
-      "cache": {
-        "disabled": true
-      }
+      "channel": "preview"
     },
-    "production": {}
+    "production": {
+      "channel": "production"
+    }
   }
 }

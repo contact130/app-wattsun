@@ -57,6 +57,12 @@
         }
       ]
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/eb1457bd-f083-40b5-af93-d31c9bad5cf0"
+    },
     "extra": {
       "apiUrl": "https://appwattsun.manus.space",
       "eas": {
