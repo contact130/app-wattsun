@@ -192,6 +192,24 @@ export async function createDossier(data: {
   return await trpcMutation('portail.createDossier', data);
 }
 
+// Modifier un dossier existant (admin only)
+export async function updateDossier(data: {
+  code: string;
+  dossierId: number;
+  nom: string;
+  prenom?: string;
+  ville?: string;
+  typesTravaux?: string;
+  telephone?: string;
+  email?: string;
+  adresse?: string;
+  societe?: 'wattsun' | 'wattco';
+  statut?: string;
+  notes?: string;
+}): Promise<{ success: boolean }> {
+  return await trpcMutation('portail.updateDossier', data);
+}
+
 // Récupérer le nombre de notifications non lues par dossier
 export async function getUnreadByDossier(code: string): Promise<Record<string, number>> {
   return await trpcQuery('notifications.partenaireUnreadByDossier', { code });

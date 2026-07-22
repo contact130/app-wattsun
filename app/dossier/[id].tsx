@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -128,6 +129,13 @@ export default function DossierScreen() {
     const interval = setInterval(fetchDossier, 10000);
     return () => clearInterval(interval);
   }, [fetchDossier]);
+
+  // Recharger quand on revient sur cet écran (ex: après modification)
+  useFocusEffect(
+    useCallback(() => {
+      fetchDossier();
+    }, [fetchDossier])
+  );
 
   // Marquer les notifications comme lues pour ce dossier à l'ouverture
   useEffect(() => {
@@ -323,6 +331,22 @@ export default function DossierScreen() {
             {parseTypesTravaux(dossier.typesTravaux)} — {dossier.ville || 'Ville non renseignée'}
           </Text>
         </View>
+        {isAdmin && (
+          <TouchableOpacity
+            onPress={() => router.push({
+              pathname: '/modifier-chantier',
+              params: { dossier: JSON.stringify(dossier) },
+            })}
+            style={{
+              padding: 8,
+              backgroundColor: '#F3F4F6',
+              borderRadius: 8,
+              marginLeft: 8,
+            }}
+          >
+            <Ionicons name="pencil" size={18} color="#1B7D4B" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Tabs */}
