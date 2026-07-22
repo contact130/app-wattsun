@@ -96,9 +96,7 @@ export default function ModifierChantierScreen() {
         statut,
         notes: notes.trim() || undefined,
       });
-      Alert.alert('Succès', 'Chantier modifié avec succès', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      router.back();
     } catch (e: any) {
       Alert.alert('Erreur', e?.message || 'Impossible de modifier le chantier');
     } finally {
@@ -234,22 +232,22 @@ export default function ModifierChantierScreen() {
           style={inputStyle}
         />
 
-        {/* Ville */}
-        <Text style={{ ...labelStyle, marginTop: 14 }}>Ville</Text>
-        <TextInput
-          value={ville}
-          onChangeText={setVille}
-          placeholder="Ville"
-          placeholderTextColor="#9BA1A6"
-          style={inputStyle}
-        />
-
         {/* Adresse */}
         <Text style={{ ...labelStyle, marginTop: 14 }}>Adresse complète</Text>
         <TextInput
           value={adresse}
           onChangeText={setAdresse}
           placeholder="Adresse"
+          placeholderTextColor="#9BA1A6"
+          style={inputStyle}
+        />
+
+        {/* Ville */}
+        <Text style={{ ...labelStyle, marginTop: 14 }}>Ville</Text>
+        <TextInput
+          value={ville}
+          onChangeText={setVille}
+          placeholder="Ville"
           placeholderTextColor="#9BA1A6"
           style={inputStyle}
         />

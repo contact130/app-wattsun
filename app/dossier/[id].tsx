@@ -601,7 +601,25 @@ export default function DossierScreen() {
               Informations client
             </Text>
             <InfoRow icon="person" label="Client" value={`${dossier.prenom || ''} ${dossier.nom || ''}`.trim() || '—'} />
-            <InfoRow icon="location" label="Adresse" value={dossier.adresse || '—'} />
+            {dossier.adresse ? (
+              <TouchableOpacity onPress={() => {
+                const query = encodeURIComponent(`${dossier.adresse || ''} ${dossier.ville || ''}`.trim());
+                Alert.alert(
+                  'Ouvrir dans…',
+                  dossier.adresse,
+                  [
+                    { text: 'Google Maps', onPress: () => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`) },
+                    { text: 'Waze', onPress: () => Linking.openURL(`https://waze.com/ul?q=${query}&navigate=yes`) },
+                    { text: 'Plans (Apple)', onPress: () => Linking.openURL(`maps://?q=${query}`) },
+                    { text: 'Annuler', style: 'cancel' },
+                  ]
+                );
+              }}>
+                <InfoRow icon="location" label="Adresse" value={dossier.adresse} valueColor="#1B7D4B" />
+              </TouchableOpacity>
+            ) : (
+              <InfoRow icon="location" label="Adresse" value="—" />
+            )}
             <InfoRow icon="business" label="Ville" value={dossier.ville || '—'} />
             {dossier.telephone ? (
               <TouchableOpacity onPress={() => Linking.openURL(`tel:${dossier.telephone}`)}>
