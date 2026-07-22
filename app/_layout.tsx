@@ -1,28 +1,13 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
-import { useEffect, useRef } from 'react';
+import LoginScreen from './index';
 
 function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-  const prevAuthenticated = useRef<boolean | null>(null);
 
-  useEffect(() => {
-    if (isLoading) return;
-
-    // Ne réagir qu'aux changements réels de l'état d'auth
-    if (prevAuthenticated.current === isAuthenticated) return;
-    prevAuthenticated.current = isAuthenticated;
-
-    if (!isAuthenticated) {
-      router.replace('/');
-    } else {
-      router.replace('/(tabs)');
-    }
-  }, [isAuthenticated, isLoading]);
-
+  // Pendant le chargement initial
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFB' }}>
@@ -31,11 +16,21 @@ function RootNavigator() {
     );
   }
 
+  // Pas authentifié → afficher directement le login sans navigation
+  if (!isAuthenticated) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <LoginScreen />
+      </>
+    );
+  }
+
+  // Authentifié → afficher le Stack avec les tabs
   return (
     <>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen 
           name="dossier/[id]" 
