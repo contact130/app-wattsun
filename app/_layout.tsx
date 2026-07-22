@@ -1,29 +1,28 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
-  const segments = useSegments();
   const router = useRouter();
+  const prevAuthenticated = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(tabs)' || segments[0] === 'dossier' || segments[0] === 'nouveau-chantier';
+    // Ne réagir qu'aux changements réels de l'état d'auth
+    if (prevAuthenticated.current === isAuthenticated) return;
+    prevAuthenticated.current = isAuthenticated;
 
-    if (!isAuthenticated && inAuthGroup) {
-      // Pas authentifié mais sur un écran protégé → aller au login
+    if (!isAuthenticated) {
       router.replace('/');
-    } else if (isAuthenticated && !inAuthGroup) {
-      // Authentifié mais sur le login → aller aux tabs
+    } else {
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading]);
 
-  // Pendant le chargement initial, afficher un splash
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFB' }}>
