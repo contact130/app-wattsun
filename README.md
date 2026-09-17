@@ -2,6 +2,8 @@
 
 Application mobile React Native (Expo) pour les techniciens Wattsun Énergie et Watt'co Énergie.
 
+Projet conçu et développé par Julien Bénard dans le cadre d’une mission freelance pour Wattsun Energie, avec l’assistance de Manus AI.
+
 ## Fonctionnalités
 
 - **Connexion par code** : chaque technicien se connecte avec son code personnel (ex: WE-NICO01)
